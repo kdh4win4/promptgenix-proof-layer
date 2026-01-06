@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SBIR Specific Aims — PromptGenix Proof Layer</title>
+  <style>
+    :root { --bg:#0b0f14; --panel:#0f1621; --text:#e8eef6; --muted:#9fb0c3; --line:#223042; --accent:#7dd3fc; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--bg); color: var(--text);
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    header { display:flex; gap:16px; align-items:flex-start; justify-content:space-between; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: 20px; letter-spacing: .2px; }
+    .sub { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .btns { display:flex; gap:10px; flex-wrap: wrap; }
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button:hover { border-color: #2f425c; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    }
+    .toolbar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+    }
+    .tag { color: var(--muted); font-size: 12px; }
+    .status { font-size: 12px; color: var(--muted); }
+    .status strong { color: var(--accent); }
+    textarea {
+      width: 100%;
+      min-height: 620px;
+      border: 0;
+      outline: none;
+      padding: 16px;
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      resize: vertical;
+      white-space: pre;
+    }
+    footer { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>SBIR Specific Aims — PromptGenix Proof Layer</h1>
+        <p class="sub">
+          Single-file viewer for easy copy/paste. Click <strong>Copy</strong> to copy the full text to your clipboard,
+          or <strong>Select All</strong> to highlight everything.
+        </p>
+      </div>
+      <div class="btns">
+        <button id="copyBtn" type="button">Copy</button>
+        <button id="selectBtn" type="button">Select All</button>
+        <button id="downloadBtn" type="button">Download .txt</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="tag">Document: <strong>Specific Aims</strong></div>
+        <div class="status" id="status">Status: <strong>Ready</strong></div>
+      </div>
+
+      <textarea id="doc" spellcheck="false">
+Specific Aims
+
+Artificial intelligence (AI) systems are increasingly used to generate scientific summaries, regulatory reports, and analytical outputs that inform high-stakes decisions. However, AI-generated results are inherently mutable, difficult to audit, and often lack verifiable records of their original prompts, data context, and generation conditions. This creates significant risks for reproducibility, regulatory compliance, and public trust, particularly in government, research, and defense settings.
+
+Existing approaches to AI logging and provenance rely on centralized databases, internal logs, or version-controlled documents, all of which remain vulnerable to modification, deletion, or loss over time. There is currently no lightweight, independent, and verifiable mechanism to prove that a specific AI-generated output existed at a given time and has not been altered since its creation.
+
+The overall objective of this project is to develop and validate a minimal, cryptographically verifiable proof layer for AI-generated outputs and data provenance using permanent decentralized storage. The central hypothesis is that hashing AI prompts and outputs, combined with structured metadata and immutable storage on Arweave, can provide a practical and auditable foundation for AI trust without exposing sensitive content.
+
+To test this hypothesis, we propose the following Specific Aims:
+
+Aim 1: Develop an immutable proof generation pipeline for AI outputs and data provenance.
+We will design and implement a proof generation pipeline that computes cryptographic hashes of AI prompts and outputs, constructs standardized metadata records (including model identity, timestamp, and authorship), and stores these records permanently on the Arweave network. The system will explicitly avoid storing raw content, ensuring privacy and security while preserving verifiability. Success will be measured by the reliable creation of Arweave transaction IDs that uniquely and permanently reference each proof record.
+
+Aim 2: Implement and evaluate an independent verification workflow for AI-generated results.
+We will develop both command-line and web-based verification tools that allow independent users to validate AI outputs using only an Arweave transaction ID and locally held content. Verification will recompute cryptographic hashes and compare them against the stored proof records. The system will be evaluated using realistic AI-generated use cases, including research summaries and analytical reports, to demonstrate usability, robustness, and tamper detection.
+
+Expected Outcomes and Impact
+Successful completion of Phase I will result in a validated, open, and extensible proof-of-concept demonstrating immutable AI output verification and data provenance. This work will establish the technical feasibility required for Phase II development, including enterprise integration, policy-driven governance layers, and large-scale deployment in government and regulated environments. Ultimately, this project addresses a critical gap in AI trust infrastructure by enabling transparent, auditable, and reproducible AI-assisted decision-making.
+      </textarea>
+    </div>
+
+    <footer>
+      Tip: You can paste this into your SBIR template, Google Docs, or Word.  
+      If you want, I can also format this into a 1-page PDF later.
+    </footer>
+  </div>
+
+  <script>
+    const docEl = document.getElementById("doc");
+    const statusEl = document.getElementById("status");
+
+    function setStatus(msg) {
+      statusEl.innerHTML = 'Status: <strong>' + msg + '</strong>';
+      setTimeout(() => { statusEl.innerHTML = 'Status: <strong>Ready</strong>'; }, 1800);
+    }
+
+    document.getElementById("selectBtn").addEventListener("click", () => {
+      docEl.focus();
+      docEl.select();
+      setStatus("Selected");
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      try {
+        docEl.focus();
+        docEl.select();
+        await navigator.clipboard.writeText(docEl.value);
+        setStatus("Copied");
+      } catch (e) {
+        // Fallback for older browsers
+        try {
+          document.execCommand("copy");
+          setStatus("Copied");
+        } catch (err) {
+          setStatus("Copy failed");
+        }
+      }
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      const blob = new Blob([docEl.value], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "specific_aims.txt";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus("Downloaded");
+    });
+  </script>
+</body>
+</html>
