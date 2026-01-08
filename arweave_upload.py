@@ -1,55 +1,56 @@
 """
-PromptGenix Proof Layer
------------------------
-This script demonstrates how to create an immutable proof record
-for AI-generated outputs and store it permanently on Arweave.
+arweave_upload.py
+-----------------
+Upload AI output provenance metadata to Arweave.
 
-Key concepts:
-- Hashing AI outputs instead of storing raw content
-- Creating reproducible metadata
-- Uploading proof records to Arweave for long-term verification
+This script:
+1) Builds a small JSON proof object (project, hashes, metadata)
+2) Signs it with your Arweave wallet
+3) Sends it to the Arweave *mainnet* via https://arweave.net
+4) Prints the transaction ID (TX ID)
 """
 
-import json                    # JSON serialization for metadata
-import os                      # Environment variable access
-from datetime import datetime  # Standardized timestamp generation
+import json
+import os
+from datetime import datetime, timezone
 
-from arweave import Wallet, Transaction   # Arweave SDK
-from dotenv import load_dotenv             # Load .env file safely
-import hashlib                              # Cryptographic hashing
+from arweave import Wallet, Transaction  # arweave-python-client
 
 
 # ---------------------------------------------------------
-# 1️⃣ Load environment variables
+# 1️⃣ Load Arweave wallet (mainnet)
 # ---------------------------------------------------------
 
-# Load variables from .env (NOT committed to GitHub)
-load_dotenv()
-
-# Path to Arweave wallet JSON file
-# ⚠️ This file contains your private key and MUST NOT be committed
+# 환경변수에서 지갑 경로 읽기 (없으면 에러)
 ARWEAVE_WALLET_PATH = os.getenv("ARWEAVE_WALLET_PATH")
-
 if not ARWEAVE_WALLET_PATH:
     raise RuntimeError(
-        "ARWEAVE_WALLET_PATH is not set. "
-        "Please define it in your .env file."
+        "ARWEAVE_WALLET_PATH is not set. Please define it in your .env file."
     )
+
+if not os.path.exists(ARWEAVE_WALLET_PATH):
+    raise FileNotFoundError(
+        f"Arweave keyfile not found at: {ARWEAVE_WALLET_PATH}"
+    )
+
+# 지갑 로드
+wallet = Wallet(ARWEAVE_WALLET_PATH)
+
+# ✅ 여기가 중요: 무조건 메인넷 게이트웨이 사용
+wallet.api_url = "https://arweave.net"
 
 
 # ---------------------------------------------------------
 # 2️⃣ Utility: SHA-256 hashing
 # ---------------------------------------------------------
 
+import hashlib
+
+
 def sha256_from_text(text: str) -> str:
     """
     Convert a string (AI output, prompt, etc.)
     into a SHA-256 hash.
-
-    Why hashing?
-    - Prevents leaking sensitive content
-    - Enables later verification
-    - Guarantees immutability
     """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -67,66 +68,49 @@ def build_proof_metadata(
 ) -> dict:
     """
     Construct a minimal but verifiable proof record.
-
-    The raw prompt/output are NOT stored.
-    Only their cryptographic fingerprints are preserved.
+    Raw prompt/output are NOT stored. Only hashes.
     """
     return {
-        # Project identifier (important for audits / SBIR)
         "project": "PromptGenix Proof Layer",
-
-        # Type of proof being created
         "proof_type": "AI_OUTPUT_PROVENANCE",
-
-        # AI model used to generate the output
         "ai_model": ai_model,
-
-        # Hash of the prompt text
         "prompt_hash": sha256_from_text(prompt),
-
-        # Hash of the AI-generated output
         "output_hash": sha256_from_text(output),
-
-        # ISO 8601 UTC timestamp (global standard)
-        "created_at": datetime.utcnow().isoformat() + "Z",
-
-        # Authorship information
+        # timezone-aware UTC timestamp
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "author": author,
         "organization": organization,
     }
 
 
 # ---------------------------------------------------------
-# 4️⃣ Upload proof to Arweave
+# 4️⃣ Upload proof to Arweave mainnet
 # ---------------------------------------------------------
 
 def upload_to_arweave(metadata: dict) -> str:
     """
-    Upload proof metadata to Arweave
+    Upload proof metadata to Arweave mainnet
     and return the immutable transaction ID (TX ID).
     """
 
-    # Load Arweave wallet using local keyfile
-    wallet = Wallet(ARWEAVE_WALLET_PATH)
+    # JSON 직렬화 후 bytes 로 인코딩
+    data_bytes = json.dumps(metadata, ensure_ascii=False).encode("utf-8")
 
-    # Convert metadata dictionary to formatted JSON string
-    data_str = json.dumps(metadata, indent=2)
+    # 트랜잭션 생성 (data = our JSON)
+    tx = Transaction(wallet, data=data_bytes)
 
-    # Create Arweave transaction with JSON payload
-    tx = Transaction(wallet, data=data_str)
-
-    # Add tags for discoverability and indexing
-    tx.add_tag("App-Name", "PromptGenix-Proof-Layer")
+    # 메타데이터 태그
     tx.add_tag("Content-Type", "application/json")
+    tx.add_tag("Project", "PromptGenix Proof Layer")
     tx.add_tag("Proof-Type", metadata["proof_type"])
+    tx.add_tag("AI-Model", metadata["ai_model"])
 
-    # Cryptographically sign the transaction
+    # 서명 및 전송
     tx.sign()
-
-    # Send transaction to Arweave network
     tx.send()
 
-    # Return permanent transaction ID
+    # 여기서 바로 검증 시도는 하지 않고,
+    # TX ID만 출력하게 두는 것이 더 안전함.
     return tx.id
 
 
@@ -135,14 +119,14 @@ def upload_to_arweave(metadata: dict) -> str:
 # ---------------------------------------------------------
 
 if __name__ == "__main__":
-    # Example prompt and AI output
+    # 예시 prompt / output
     prompt_text = "Summarize the risks of AI hallucination in research."
     ai_output = (
         "AI hallucinations may fabricate citations, "
         "misrepresent data, and undermine scientific trust."
     )
 
-    # Build proof record
+    # proof JSON 생성
     proof = build_proof_metadata(
         ai_model="gpt-4.1",
         prompt=prompt_text,
@@ -151,8 +135,8 @@ if __name__ == "__main__":
         organization="PromptGenix LLC",
     )
 
-    # Upload to Arweave and print TX ID
+    # 업로드 & TX ID 출력
     tx_id = upload_to_arweave(proof)
-
     print("✅ Arweave transaction ID:", tx_id)
-
+    print("➡ You can later check:",
+          f"https://arweave.net/tx/{tx_id}/data")
