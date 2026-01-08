@@ -5,6 +5,9 @@ how to create **immutable, verifiable records** for AI-generated outputs and the
 
 This project focuses on **trust, reproducibility, and auditability** in AI-generated content.
 
+This prototype implements a full end-to-end AI provenance layer.
+For each AI interaction, we compute SHA-256 hashes of the prompt and the generated output, package them into a signed JSON metadata object, and persist it on the Arweave mainnet. Later, given only the transaction ID and candidate prompt/output text, we re-fetch the on-chain record, recompute the hashes locally, and check for exact matches. If any character in the prompt or output has been altered, the verification fails, allowing us to detect tampering and prove the integrity of AI-generated results.
+
 ---
 
 ## 🔍 What Problem Does This Solve?
