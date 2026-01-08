@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PromptGenix Proof Layer – SBIR Technical Overview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      margin: 2rem;
+      max-width: 900px;
+    }
+    h1, h2, h3 {
+      font-weight: 600;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      font-size: 1.3rem;
+      margin-top: 1.5rem;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-top: 1rem;
+    }
+    p {
+      margin: 0.5rem 0;
+    }
+    ul {
+      margin: 0.3rem 0 0.8rem 1.25rem;
+    }
+    strong {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>AI-Generated Analysis Provenance and Tamper-Proof Audit Layer</h1>
+  <h3><em>(PromptGenix Proof Layer — Phase I Concept Overview)</em></h3>
+
+  <h2>Background &amp; Rationale</h2>
+  <p>
+    AI systems are increasingly used to analyze complex biomedical, genomic, and clinical datasets
+    and to support decision-making in research, surveillance, and translational pipeline development.
+    However, AI-generated results—whether analytical summaries, recommendations, literature insights,
+    or risk assessments—often lack transparent provenance. Current workflows provide little auditability
+    regarding:
+  </p>
+  <ul>
+    <li><strong>What input or prompt was used</strong></li>
+    <li><strong>Which AI model generated the results</strong></li>
+    <li><strong>Whether the output has been manually edited</strong></li>
+    <li><strong>How conclusions were derived and by whom</strong></li>
+  </ul>
+  <p>
+    This lack of verifiable traceability poses a critical risk to data integrity, regulatory compliance,
+    reproducibility, and trust, especially in fields such as infectious disease research, public health
+    surveillance, pathogen detection, and clinical decision analytics.
+  </p>
+
+  <h2>Problem Statement</h2>
+  <p>
+    Despite rapid adoption of AI models in biomedical research, no widely deployed infrastructure currently exists that:
+  </p>
+  <ul>
+    <li><strong>Cryptographically binds input queries and AI outputs</strong></li>
+    <li><strong>Stores verifiable fingerprints of results independent of analysts</strong></li>
+    <li><strong>Provides long-term tamper resistance</strong> suitable for regulatory, clinical or archival use</li>
+    <li><strong>Supports multi-model provenance tracking</strong> (LLMs, domain models, local pipelines)</li>
+    <li><strong>Functions without relying on a single cloud provider, database, or institution</strong></li>
+  </ul>
+  <p>
+    As a consequence:
+  </p>
+  <ul>
+    <li>AI-derived summaries and conclusions may be modified—intentionally or accidentally—without leaving a trace,</li>
+    <li>Reproduction of analytic findings becomes uncertain over time, and</li>
+    <li>Stakeholders cannot establish confidence in model-derived insights.</li>
+  </ul>
+
+  <h2>Innovation and Technical Solution</h2>
+  <p>
+    PromptGenix proposes to develop a lightweight <strong>AI Output Provenance Layer</strong> that cryptographically
+    fingerprints the input prompt and AI-generated output at the time of creation, using a secure hashing algorithm
+    (SHA-256). Instead of storing raw content, the system saves:
+  </p>
+  <ul>
+    <li>Prompt hash</li>
+    <li>Output hash</li>
+    <li>AI model identifier</li>
+    <li>Timestamp (UTC ISO8601)</li>
+    <li>Author and organizational metadata</li>
+  </ul>
+  <p>
+    These records are digitally signed and written to a decentralized permanent storage network (Arweave mainnet),
+    producing a <strong>verifiable transaction ID (TXID)</strong>.
+  </p>
+  <p>
+    Anyone with the TXID can later:
+  </p>
+  <ul>
+    <li>Retrieve the stored metadata from Arweave</li>
+    <li>Recalculate hashes from any candidate prompt &amp; result</li>
+    <li>
+      Instantly determine whether the output is <strong>identical to the original</strong> — or detect even a
+      single-character change.
+    </li>
+  </ul>
+  <p>
+    This provides a <strong>tamper-evident chain of custody</strong> for AI inference.
+  </p>
+
+  <h2>Role of Arweave</h2>
+  <p>
+    Arweave is uniquely suited for this application because:
+  </p>
+  <ul>
+    <li>It provides <strong>permanent, decentralized storage</strong> with no expiration horizon</li>
+    <li>Each write is <strong>cryptographically linked</strong> and publicly addressable</li>
+    <li>Metadata cannot be altered or removed after inclusion</li>
+    <li>The system has built-in economic incentives for long-term replication</li>
+    <li>It eliminates the need for proprietary cloud infrastructure or trust in a single custodian</li>
+  </ul>
+  <p>
+    Arweave provides the backbone for a <strong>verifiable audit history</strong>, enabling scientific processes
+    to outlive institutions, contracts, funding periods, or compute environments.
+  </p>
+
+  <h2>Phase I Deliverables</h2>
+  <p>During Phase I, PromptGenix will:</p>
+  <ul>
+    <li>
+      Build a cloud-hosted system that automatically logs AI prompts and outputs into provenance records
+    </li>
+    <li>
+      Integrate with multiple AI models (OpenAI, Claude, local LLMs)
+    </li>
+    <li>
+      Provide a public web service and API for verifying authenticity
+    </li>
+    <li>
+      Demonstrate use cases in:
+      <ul>
+        <li>Public health analytics</li>
+        <li>Genomic or transcriptomic interpretation workflows</li>
+        <li>Literature-based hypothesis generation</li>
+      </ul>
+    </li>
+    <li>
+      Validate reproducibility across distributed partners
+    </li>
+  </ul>
+  <p>
+    This prototype will demonstrate feasibility for broader Phase II objectives such as workflow automation,
+    clinical evidence tracking, and full audit trail integration with high-stakes biomedical research environments.
+  </p>
+
+  <h2>Impact</h2>
+  <p>
+    By establishing a foundational trust layer for AI-assisted analytics, PromptGenix will:
+  </p>
+  <ul>
+    <li>Improve scientific reproducibility</li>
+    <li>Prevent unnoticed manipulation of findings</li>
+    <li>Enable compliance with future regulatory requirements for AI explainability</li>
+    <li>Provide confidence for researchers, decision-makers, and auditing authorities</li>
+  </ul>
+  <p>
+    Ultimately, this technology creates a path toward <strong>AI systems that are trustworthy,
+    verifiable, and safe to deploy</strong> in mission-critical biological and clinical domains.
+  </p>
+
+</body>
+</html>
