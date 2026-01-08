@@ -4,7 +4,7 @@ verify.py
 Verify an AI proof stored on Arweave by TX ID.
 
 What it does:
-1) Download metadata JSON from Arweave using TX ID
+1) Download metadata JSON from Arweave (or AR.IO) using TX ID
 2) Recompute hashes from your local prompt/output
 3) Compare with stored hashes to confirm integrity
 """
@@ -12,7 +12,9 @@ What it does:
 import json                      # JSON parsing for downloaded metadata
 import sys                       # Read CLI arguments (TX ID, etc.)
 import urllib.request            # Simple HTTP GET (no extra dependency)
+import urllib.error             # Handle HTTPError / URLError
 import hashlib                   # SHA-256 hashing
+from typing import List, Dict, Any
 
 
 # ---------------------------------------------------------
@@ -20,39 +22,95 @@ import hashlib                   # SHA-256 hashing
 # ---------------------------------------------------------
 
 def sha256_from_text(text: str) -> str:
-    """Convert a string into a SHA-256 hex digest (same as upload)."""
+    """Convert a string into a SHA-256 hex digest (same logic as upload)."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------
-# 2️⃣ Fetch proof JSON from Arweave gateway
+# 2️⃣ Fetch proof JSON from Arweave / AR.IO gateways
 # ---------------------------------------------------------
 
-def fetch_proof_json(tx_id: str, gateway_base: str = "https://arweave.net") -> dict:
+# We try several gateway + URL patterns so that both
+# mainnet/testnet and different endpoint shapes are supported.
+DEFAULT_GATEWAYS: List[str] = [
+    "https://arweave.net",
+    "https://arweave.net/tx",
+    "https://ar-io.net",
+]
+
+
+def _try_fetch(url: str, timeout: int = 20) -> str:
+    """Low-level helper: try a single URL and return the response body as text."""
+    req = urllib.request.Request(url)
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data_bytes = resp.read()
+    return data_bytes.decode("utf-8")
+
+
+def fetch_proof_json(
+    tx_id: str,
+    gateways: List[str] | None = None,
+) -> Dict[str, Any]:
     """
-    Download the proof JSON stored at:
-      https://arweave.net/<TX_ID>
+    Try multiple gateways and URL patterns to download the stored proof JSON.
+
+    This function is intentionally defensive because in practice:
+    - Some gateways serve raw data at  /<TX_ID>
+    - Others serve raw data at      /tx/<TX_ID>/data
+    - Some (testnets / AR.IO) may have slightly different routing
 
     Returns:
       dict parsed from JSON payload
+
+    Raises:
+      RuntimeError if all gateway attempts fail.
     """
-    # Build full URL for the transaction payload
-    url = f"{gateway_base.rstrip('/')}/{tx_id}"  # rstrip to avoid double slashes
+    if gateways is None:
+        gateways = DEFAULT_GATEWAYS
 
-    # Make a GET request to download the stored data
-    with urllib.request.urlopen(url) as resp:
-        # Read bytes -> decode to string
-        data_str = resp.read().decode("utf-8")
+    # Candidate URL patterns (we will deduplicate later)
+    url_patterns = [
+        "{base}/{tx}",            # e.g. https://arweave.net/<TX_ID>
+        "{base}/tx/{tx}/data",    # e.g. https://arweave.net/tx/<TX_ID>/data
+        "{base}/{tx}/data",       # e.g. https://ar-io.net/<TX_ID>/data
+    ]
 
-    # Parse JSON string into Python dict
-    return json.loads(data_str)
+    tried_urls: List[str] = []
+    last_error: Exception | None = None
+
+    for base in gateways:
+        base_clean = base.rstrip("/")
+        for pattern in url_patterns:
+            url = pattern.format(base=base_clean, tx=tx_id).replace("//tx", "/tx")
+
+            # Avoid hitting the exact same URL twice
+            if url in tried_urls:
+                continue
+            tried_urls.append(url)
+
+            try:
+                body = _try_fetch(url)
+                # If we reach here, HTTP status was 200 and we have a body.
+                # Now try to parse as JSON.
+                return json.loads(body)
+            except (urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as e:
+                last_error = e
+                # Just continue to the next candidate
+                continue
+
+    # If we are here, every attempt failed
+    msg = "Failed to fetch proof JSON for TX ID {tx_id}. Tried URLs:\n  ".format(tx_id=tx_id)
+    msg += "\n  ".join(tried_urls)
+    if last_error is not None:
+        msg += f"\nLast error: {repr(last_error)}"
+    raise RuntimeError(msg)
 
 
 # ---------------------------------------------------------
 # 3️⃣ Verify hashes against local prompt/output
 # ---------------------------------------------------------
 
-def verify_proof(tx_id: str, prompt: str, output: str) -> dict:
+def verify_proof(tx_id: str, prompt: str, output: str) -> Dict[str, Any]:
     """
     Verify:
     - prompt_hash matches hash(prompt)
@@ -60,7 +118,7 @@ def verify_proof(tx_id: str, prompt: str, output: str) -> dict:
 
     Returns a structured verification result dictionary.
     """
-    # Fetch stored proof record from Arweave
+    # Fetch stored proof record from Arweave / AR.IO
     proof = fetch_proof_json(tx_id)
 
     # Extract stored hashes from proof JSON
@@ -132,6 +190,5 @@ if __name__ == "__main__":
     print("Output hash match:", result["output_ok"])
 
     # If you want full details, print JSON
-    # (This is helpful for debugging or building a UI later)
     print("\n--- Full report (JSON) ---")
     print(json.dumps(result, indent=2))
